@@ -1,0 +1,4 @@
+/htmlcov/
+/coverage.xml
+.*
+*.pyc
