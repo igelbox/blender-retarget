@@ -111,49 +111,41 @@ class RelativeBoneTransform(bpy.types.PropertyGroup):
         get=_get_use_location, set=_set_use_location,
     )
 
-    source_inverted_basis_matrix = bpy.props.FloatVectorProperty(
+    source_to_target_rest = bpy.props.FloatVectorProperty(
         description='-private-data-',
         size=16,
     )
-    transform_matrix = bpy.props.FloatVectorProperty(
+    delta_transform = bpy.props.FloatVectorProperty(
         description='-private-data-',
-        size=9,
-    )
-    target_rotation = bpy.props.FloatVectorProperty(
-        description='-private-data-',
-        size=4,
-    )
-    target_location = bpy.props.FloatVectorProperty(
-        description='-private-data-',
-        size=3,
+        size=16,
     )
 
     def update_link(self):
-        source = bpy.data.objects[self.id_data.animation_retarget.source]
-        source_bone = source.pose.bones[self.source]
-        target_bone = _prop_to_pose_bone(self.id_data, self)
-        self.id_data.data.pose_position = 'REST'
-        bpy.context.scene.update()
-        source_matrix = source_bone.matrix_basis.inverted()
-        transform_matrix = (
-            target_bone.matrix.inverted()
-            * source.matrix_world
-            * source_bone.matrix
-        ).to_3x3()
-        self.source_inverted_basis_matrix = (
-            *source_matrix.row[0],
-            *source_matrix.row[1],
-            *source_matrix.row[2],
-            *source_matrix.row[3]
+        source_obj = bpy.data.objects[self.id_data.animation_retarget.source]
+        source_bone = source_obj.pose.bones[self.source]
+        target_obj = self.id_data
+        target_bone = _prop_to_pose_bone(target_obj, self)
+
+        source = source_obj.matrix_world * source_bone.matrix
+        source_rest = source * source_bone.matrix_basis.inverted()
+        target = target_obj.matrix_world * target_bone.matrix
+        target_rest = target * target_bone.matrix_basis.inverted()
+
+        source_to_target_rest = target_rest.inverted() * source_rest
+        delta_transform = source.inverted() * target
+
+        self.source_to_target_rest = (
+            *source_to_target_rest.row[0],
+            *source_to_target_rest.row[1],
+            *source_to_target_rest.row[2],
+            *source_to_target_rest.row[3]
         )
-        self.transform_matrix = (
-            *transform_matrix.row[0],
-            *transform_matrix.row[1],
-            *transform_matrix.row[2],
+        self.delta_transform = (
+            *delta_transform.row[0],
+            *delta_transform.row[1],
+            *delta_transform.row[2],
+            *delta_transform.row[3]
         )
-        self.target_rotation = target_bone.matrix_basis.to_quaternion()
-        self.target_location = target_bone.matrix_basis.to_translation()
-        self.id_data.data.pose_position = 'POSE'
         self._invalidate()
 
     frame_cache = bpy.props.FloatVectorProperty(
@@ -174,25 +166,19 @@ class RelativeBoneTransform(bpy.types.PropertyGroup):
         source_bone = source.pose.bones[self.source]
         target_bone = _prop_to_pose_bone(self.id_data, self)
 
-        msbi = _fvec16_to_matrix4(self.source_inverted_basis_matrix)
-        mdiff = _fvec9_to_matrix3(self.transform_matrix)
-        tquat = mathutils.Quaternion(self.target_rotation)
-        tloc = mathutils.Vector(self.target_location)
+        source_to_target_rest = _fvec16_to_matrix4(self.source_to_target_rest)
+        delta_transform = _fvec16_to_matrix4(self.delta_transform)
+        transform = source_to_target_rest * source_bone.matrix_basis * delta_transform
 
-        mbdif = msbi * source_bone.matrix_basis
-
-        location = tloc + mdiff * mbdif.to_translation()
-
-        qdiff = mbdif.to_quaternion()
-        atrns = mdiff * qdiff.axis
-        qtrns = tquat * mathutils.Quaternion(atrns, qdiff.angle)
+        location = transform.to_translation()
+        quaternion = transform.to_quaternion()
         rotation = None
         if target_bone.rotation_mode == 'QUATERNION':
-            rotation = qtrns
+            rotation = quaternion
         elif target_bone.rotation_mode == 'AXIS_ANGLE':
-            rotation = (qtrns.angle, *qtrns.axis)
+            rotation = (quaternion.angle, *quaternion.axis)
         else:
-            rotation = (*qtrns.to_euler(target_bone.rotation_mode), 0)
+            rotation = (*quaternion.to_euler(target_bone.rotation_mode), 0)
 
         self.frame_cache = cache = (*location, *rotation, frame)
         return cache
