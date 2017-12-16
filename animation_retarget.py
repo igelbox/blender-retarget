@@ -18,9 +18,16 @@ Further versions may be not compatible with settings from this version.'
 class RelativeObjectTransform(bpy.types.PropertyGroup):
     b_type = bpy.types.Object
 
+    def _update_source(self, _context):
+        if self.source:
+            for bone in self.id_data.pose.bones:
+                if bone.animation_retarget.source:
+                    bone.animation_retarget.update_link()
+
     source = bpy.props.StringProperty(
         name='Source Object',
         description='An object whose animation will be used',
+        update=_update_source,
     )
 
 def _prop_to_pose_bone(obj, prop):
