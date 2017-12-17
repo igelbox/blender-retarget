@@ -18,6 +18,13 @@ class ObjectPanel(AbstractBasePanel):
     def draw(self, context):
         layout = self.layout
         data = context.object.animation_retarget
+
+        col = layout.column(align=True)
+        row = col.row(align=True)
+        row.operator('animation_retarget.copy_mapping', icon='COPYDOWN', text='Copy')
+        row.operator('animation_retarget.paste_mapping', icon='PASTEDOWN', text='Paste')
+        row.operator('animation_retarget.clear_mapping', icon='X', text='Clear')
+
         layout.prop_search(data, 'source', bpy.data, 'objects')
 
         source = bpy.data.objects.get(data.source)

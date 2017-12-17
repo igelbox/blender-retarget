@@ -1,5 +1,101 @@
+from collections import OrderedDict
+import configparser
+from io import StringIO
+
 import bpy
 import mathutils
+
+
+__CONFIG_PREFIX_BONE__ = 'bone:'
+
+
+def mapping_to_text(target_obj):
+    def put_nonempty_value(data, name, value):
+        if value:
+            data[name] = value
+
+    def put_nonzero_tuple(data, name, value):
+        for val in value:
+            if val:
+                data[name] = value
+                break
+
+    def prepare_value(value):
+        value = round(value, 6)
+        ivalue = int(value)
+        return ivalue if ivalue == value else value
+
+    config = configparser.ConfigParser()
+    config['object'] = {
+        'source': target_obj.animation_retarget.source,
+    }
+
+    for bone in target_obj.pose.bones:
+        prop = bone.animation_retarget
+        data = OrderedDict()
+        for name in ('source', 'use_location', 'use_rotation'):
+            put_nonempty_value(data, name, getattr(prop, name))
+        for name in ('source_to_target_rest', 'delta_transform'):
+            value = tuple(map(prepare_value, getattr(prop, name)))
+            put_nonzero_tuple(data, name, value)
+        if data:
+            config[__CONFIG_PREFIX_BONE__ + bone.name] = data
+
+    buffer = StringIO()
+    config.write(buffer)
+    return buffer.getvalue()
+
+
+def text_to_mapping(text, target_obj):
+    def parse_boolean(text):
+        return {
+            'True': True,
+            'False': False,
+        }[text]
+
+    def parse_tuple(text):
+        text = text.replace('(', '').replace(')', '')
+        return tuple(map(float, text.split(',')))
+
+    config = configparser.ConfigParser()
+    config.read_string(text)
+
+    source = config['object']['source']
+    target_obj.animation_retarget.source = source
+
+    for key, value in config.items():
+        if not key.startswith(__CONFIG_PREFIX_BONE__):
+            continue
+        name = key[len(__CONFIG_PREFIX_BONE__):]
+        target_bone = target_obj.pose.bones.get(name)
+        if not target_bone:
+            print('bone ' + name + ' is not found')
+            continue
+        prop = target_bone.animation_retarget
+        if 'source' in value:
+            prop.source = value['source']
+        for name in ('use_location', 'use_rotation'):
+            if name in value:
+                setattr(prop, name, parse_boolean(value[name]))
+        for name in ('source_to_target_rest', 'delta_transform'):
+            if name in value:
+                setattr(prop, name, parse_tuple(value[name]))
+        prop.invalidate_cache()
+    bpy.context.scene.update()
+
+
+__ZERO_V16__ = (0,) * 16
+
+def clear_mapping(target_obj):
+    target_obj.animation_retarget.source = ''
+    for bone in target_obj.pose.bones:
+        prop = bone.animation_retarget
+        prop.source = ''
+        prop.use_location = prop.use_rotation = False
+        prop.source_to_target_rest = prop.delta_transform = __ZERO_V16__
+        prop.invalidate_cache()
+    bpy.context.scene.update()
+
 
 class RelativeObjectTransform(bpy.types.PropertyGroup):
     b_type = bpy.types.Object
@@ -25,18 +121,19 @@ def _prop_to_pose_bone(obj, prop):
 def _fvec16_to_matrix4(fvec):
     return mathutils.Matrix((fvec[0:4], fvec[4:8], fvec[8:12], fvec[12:16]))
 
-def _fvec9_to_matrix3(fvec):
-    return mathutils.Matrix((fvec[0:3], fvec[3:6], fvec[6:9]))
-
 __ROTATION_MODES__ = ('quaternion', 'euler', 'axis_angle')
 
 class RelativeBoneTransform(bpy.types.PropertyGroup):
     b_type = bpy.types.PoseBone
 
+    def _update_source(self, _context):
+        if self.source:
+            self.update_link()
+
     source = bpy.props.StringProperty(
         name='Source Bone',
         description='A bone whose animation will be used',
-        update=lambda self, _: self.update_link(),
+        update=_update_source,
     )
 
     def _get_use_rotation(self):
@@ -61,7 +158,7 @@ class RelativeBoneTransform(bpy.types.PropertyGroup):
             for fcurve in bone.driver_add('rotation_' + mode):
                 driver = fcurve.driver
                 driver.type = 'SUM'
-                var = driver.variables.new()
+                var = driver.variables[0] if driver.variables else driver.variables.new()
                 tgt = var.targets[0]
                 tgt.id = self.id_data
                 tgt.data_path = 'pose.bones["%s"].animation_retarget.transform[%d]' % (
@@ -91,7 +188,7 @@ class RelativeBoneTransform(bpy.types.PropertyGroup):
         for fcurve in bone.driver_add('location'):
             driver = fcurve.driver
             driver.type = 'SUM'
-            var = driver.variables.new()
+            var = driver.variables[0] if driver.variables else driver.variables.new()
             tgt = var.targets[0]
             tgt.id = self.id_data
             tgt.data_path = 'pose.bones["%s"].animation_retarget.transform[%d]' % (
@@ -147,8 +244,11 @@ class RelativeBoneTransform(bpy.types.PropertyGroup):
     )
 
     def _invalidate(self):
-        self.frame_cache[7] = 0
+        self.invalidate_cache()
         bpy.context.scene.update()
+
+    def invalidate_cache(self):
+        self.frame_cache[7] = 0
 
     def _get_transform(self):
         frame = bpy.context.scene.frame_current + 1 # to workaround the default 0 value

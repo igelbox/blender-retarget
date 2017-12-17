@@ -14,12 +14,14 @@ Further versions may be not compatible with settings from this version.'
 
 
 def register():
-    from . import core, ui
+    from . import core, ui, ops
     core.register()
+    ops.register()
     ui.register()
 
 
 def unregister():
-    from . import core, ui
+    from . import core, ui, ops
     ui.unregister()
+    ops.unregister()
     core.unregister()
