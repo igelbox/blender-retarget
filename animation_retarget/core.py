@@ -81,7 +81,7 @@ def text_to_mapping(text, target_obj):
             if name in value:
                 setattr(prop, name, parse_tuple(value[name]))
         prop.invalidate_cache()
-    bpy.context.scene.update()
+    # bpy.context.scene.update()
 
 
 __ZERO_V16__ = (0,) * 16
@@ -94,7 +94,7 @@ def clear_mapping(target_obj):
         prop.use_location = prop.use_rotation = False
         prop.source_to_target_rest = prop.delta_transform = __ZERO_V16__
         prop.invalidate_cache()
-    bpy.context.scene.update()
+    # bpy.context.scene.update()
 
 
 class RelativeObjectTransform(bpy.types.PropertyGroup):
@@ -106,7 +106,7 @@ class RelativeObjectTransform(bpy.types.PropertyGroup):
                 if bone.animation_retarget.source:
                     bone.animation_retarget.update_link()
 
-    source = bpy.props.StringProperty(
+    source: bpy.props.StringProperty(
         name='Source Object',
         description='An object whose animation will be used',
         update=_update_source,
@@ -130,7 +130,7 @@ class RelativeBoneTransform(bpy.types.PropertyGroup):
         if self.source:
             self.update_link()
 
-    source = bpy.props.StringProperty(
+    source: bpy.props.StringProperty(
         name='Source Bone',
         description='A bone whose animation will be used',
         update=_update_source,
@@ -165,7 +165,7 @@ class RelativeBoneTransform(bpy.types.PropertyGroup):
                     bone.name, fcurve.array_index + 3
                 )
 
-    use_rotation = bpy.props.BoolProperty(
+    use_rotation: bpy.props.BoolProperty(
         name='Link Rotation',
         description='Link rotation to the source bone',
         get=_get_use_rotation, set=_set_use_rotation,
@@ -195,17 +195,17 @@ class RelativeBoneTransform(bpy.types.PropertyGroup):
                 bone.name, fcurve.array_index
             )
 
-    use_location = bpy.props.BoolProperty(
+    use_location: bpy.props.BoolProperty(
         name='Link Location',
         description='Link location to the source bone',
         get=_get_use_location, set=_set_use_location,
     )
 
-    source_to_target_rest = bpy.props.FloatVectorProperty(
+    source_to_target_rest: bpy.props.FloatVectorProperty(
         description='-private-data-',
         size=16,
     )
-    delta_transform = bpy.props.FloatVectorProperty(
+    delta_transform: bpy.props.FloatVectorProperty(
         description='-private-data-',
         size=16,
     )
@@ -216,13 +216,13 @@ class RelativeBoneTransform(bpy.types.PropertyGroup):
         target_obj = self.id_data
         target_bone = _prop_to_pose_bone(target_obj, self)
 
-        source = source_obj.matrix_world * source_bone.matrix
-        source_rest = source * source_bone.matrix_basis.inverted()
-        target = target_obj.matrix_world * target_bone.matrix
-        target_rest = target * target_bone.matrix_basis.inverted()
+        source = source_obj.matrix_world @ source_bone.matrix
+        source_rest = source @ source_bone.matrix_basis.inverted()
+        target = target_obj.matrix_world @ target_bone.matrix
+        target_rest = target @ target_bone.matrix_basis.inverted()
 
-        source_to_target_rest = target_rest.inverted() * source_rest
-        delta_transform = source.inverted() * target
+        source_to_target_rest = target_rest.inverted() @ source_rest
+        delta_transform = source.inverted() @ target
 
         self.source_to_target_rest = (
             *source_to_target_rest.row[0],
@@ -238,14 +238,14 @@ class RelativeBoneTransform(bpy.types.PropertyGroup):
         )
         self._invalidate()
 
-    frame_cache = bpy.props.FloatVectorProperty(
+    frame_cache: bpy.props.FloatVectorProperty(
         description='-private-data-',
         size=8,
     )
 
     def _invalidate(self):
         self.invalidate_cache()
-        bpy.context.scene.update()
+        # bpy.context.scene.update()
 
     def invalidate_cache(self):
         self.frame_cache[7] = 0
@@ -261,7 +261,7 @@ class RelativeBoneTransform(bpy.types.PropertyGroup):
 
         source_to_target_rest = _fvec16_to_matrix4(self.source_to_target_rest)
         delta_transform = _fvec16_to_matrix4(self.delta_transform)
-        transform = source_to_target_rest * source_bone.matrix_basis * delta_transform
+        transform = source_to_target_rest @ source_bone.matrix_basis @ delta_transform
 
         location = transform.to_translation()
         quaternion = transform.to_quaternion()
@@ -276,7 +276,7 @@ class RelativeBoneTransform(bpy.types.PropertyGroup):
         self.frame_cache = cache = (*location, *rotation, frame)
         return cache
 
-    transform = bpy.props.FloatVectorProperty(size=8, get=_get_transform)
+    transform: bpy.props.FloatVectorProperty(size=8, get=_get_transform)
 
 __CLASSES__ = (
     RelativeObjectTransform,
