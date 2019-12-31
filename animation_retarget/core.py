@@ -81,7 +81,7 @@ def text_to_mapping(text, target_obj):
             if name in value:
                 setattr(prop, name, parse_tuple(value[name]))
         prop.invalidate_cache()
-    # bpy.context.scene.update()
+    bpy.context.view_layer.update()
 
 
 __ZERO_V16__ = (0,) * 16
@@ -94,7 +94,7 @@ def clear_mapping(target_obj):
         prop.use_location = prop.use_rotation = False
         prop.source_to_target_rest = prop.delta_transform = __ZERO_V16__
         prop.invalidate_cache()
-    # bpy.context.scene.update()
+    bpy.context.view_layer.update()
 
 
 class RelativeObjectTransform(bpy.types.PropertyGroup):
@@ -245,7 +245,7 @@ class RelativeBoneTransform(bpy.types.PropertyGroup):
 
     def _invalidate(self):
         self.invalidate_cache()
-        # bpy.context.scene.update()
+        bpy.context.view_layer.update()
 
     def invalidate_cache(self):
         self.frame_cache[7] = 0
