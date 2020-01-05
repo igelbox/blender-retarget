@@ -211,6 +211,34 @@ class RelativeBoneTransform(bpy.types.PropertyGroup):
     )
 
     def update_link(self):
+        '''
+        Holy Python! Today I spent hours to realize what the magic is happening here and there.
+        So, to not spend the time once again, the magic lays in the following equation/expression
+        which is being calculated in `_get_transform()`:
+                   /--source_to_target_rest--\\
+                   |                          |
+                   | /target_rest\\           |          /delta_transform\\
+                   | |           /            |          |          /
+            Ta_x = (!(Tw * !Ta_0) * Sw * !Sa_0) * Sa_x * (!Sw * Tw)
+        where:
+            Sw - source world-basis matrix
+            Sa_0, Sa_x - source local animation data matrix, e.g. calculated from curve values
+                `Sa_0` - the initial, `Sa_x` - the current state/pose matrix
+            Tw - target world-basis matrix
+            Ta_x - the desired target local animation data matrix
+
+        The Proof (in the initial state, don't care of edge cases):
+            1. replacing Sa_x => Sa_0, Ta_x => Ta_0:
+                Ta_0 = (!(Tw * !Ta_0) * Sw * !Sa_0) * Sa_0 * (!Sw * Tw)
+            2. Remove braces due to associative property of matrix multiplication
+                Ta_0 = !(Tw * !Ta_0) * Sw * !Sa_0 * Sa_0 * !Sw * Tw
+            3. Multiply by `!Ta_0` at right
+                Ta_0 * !Ta_0 = !(Tw * !Ta_0) * Sw * !Sa_0 * Sa_0 * !Sw * Tw * !Ta_0
+            4. Reduce the expression
+                1 = !(Tw * !Ta_0) * Sw * 1 * !Sw * Tw * !Ta_0
+                1 = !(Tw * !Ta_0) * 1 * Tw * !Ta_0
+                1 = 1
+        '''
         source_obj = bpy.data.objects[self.id_data.animation_retarget.source]
         source_bone = source_obj.pose.bones[self.source]
         target_obj = self.id_data
