@@ -1,6 +1,6 @@
 import bpy
 
-from .core import mapping_to_text, text_to_mapping, clear_mapping
+from .core import mapping_to_text, text_to_mapping, clear_mapping, trick_blender28
 
 WM = bpy.context.window_manager
 
@@ -62,11 +62,35 @@ class OBJECT_OT_ClearMapping(bpy.types.Operator):
             return False
         return True
 
+class OBJECT_OT_TrickBlender(bpy.types.Operator):
+    bl_idname = "animation_retarget.trick_blender"
+    bl_label = "Fix Refreshing"
+    bl_description = "Trick Blender 2.8x 'depsgraph' to force driver variables refresh each frame"
+
+    def execute(self, context):
+        target_obj = context.active_object
+        trick_blender28(target_obj)
+        return {'FINISHED'}
+
+    @classmethod
+    def poll(cls, context):
+        target_obj = context.active_object
+        if (not target_obj) or (target_obj.type not in {'ARMATURE'}):
+            return False
+
+        if not target_obj.animation_retarget.source:
+            return False  # No worries, we fix this on source prop update
+
+        animation_data = target_obj.animation_data
+        if animation_data and animation_data.action:
+            return False
+        return True
 
 __CLASSES__ = (
     OBJECT_OT_CopyMapping,
     OBJECT_OT_PasteMapping,
     OBJECT_OT_ClearMapping,
+    OBJECT_OT_TrickBlender,
 )
 
 def register():

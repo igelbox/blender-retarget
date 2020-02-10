@@ -8,6 +8,8 @@ import mathutils
 
 __CONFIG_PREFIX_BONE__ = 'bone:'
 
+__TRICK_BLENDER28_ACTION_PREFIX__ = 'Just-a-Trick-to-Refresh'
+
 
 def mapping_to_text(target_obj):
     def put_nonempty_value(data, name, value):
@@ -97,20 +99,37 @@ def clear_mapping(target_obj):
     bpy.context.view_layer.update()
 
 
+def trick_blender28(target_obj):
+    animation_data = target_obj.animation_data_create()
+    action = animation_data.action
+    if not action:
+        for act in bpy.data.actions:
+            if act.name.startswith(__TRICK_BLENDER28_ACTION_PREFIX__):
+                action = act
+                break
+    if not action:
+        action = bpy.data.actions.new(__TRICK_BLENDER28_ACTION_PREFIX__)
+    animation_data.action = action
+
+
 class RelativeObjectTransform(bpy.types.PropertyGroup):
     b_type = bpy.types.Object
 
     def _update_source(self, _context):
         if self.source:
-            for bone in self.id_data.pose.bones:
+            target_obj = self.id_data
+            for bone in target_obj.pose.bones:
                 if bone.animation_retarget.source:
                     bone.animation_retarget.update_link()
+
+            trick_blender28(target_obj)
 
     source: bpy.props.StringProperty(
         name='Source Object',
         description='An object whose animation will be used',
         update=_update_source,
     )
+
 
 def _prop_to_pose_bone(obj, prop):
     for bone in obj.pose.bones:

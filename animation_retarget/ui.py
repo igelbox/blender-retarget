@@ -19,6 +19,9 @@ class OBJECT_PT_ObjectPanel(AbstractBasePanel):
         layout = self.layout
         data = context.object.animation_retarget
 
+        if bpy.ops.animation_retarget.trick_blender.poll():
+            layout.operator('animation_retarget.trick_blender', icon='ERROR')
+
         col = layout.column(align=True)
         row = col.row(align=True)
         row.operator('animation_retarget.copy_mapping', icon='COPYDOWN', text='Copy')
