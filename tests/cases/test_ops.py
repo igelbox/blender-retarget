@@ -101,8 +101,8 @@ source_to_target_rest = (1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1)
 def create_armature(name):
     arm = bpy.data.armatures.new(name)
     obj = bpy.data.objects.new(name, arm)
-    bpy.context.scene.objects.link(obj)
-    bpy.context.scene.objects.active = obj
+    bpy.context.scene.collection.objects.link(obj)
+    bpy.context.view_layer.objects.active = obj
 
     bpy.ops.object.mode_set(mode='EDIT')
     try:

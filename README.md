@@ -7,7 +7,7 @@ The main goal is to __link/synchronize__ target armature __bones__ with a source
 Thus, allowing you to __use your next favorite tools__ for baking/exporting/using the result motions. For the glory of the Unix way.
 
 # How to Install
-* For Blender 2.80+ - __not supported yet__, the fix is [still in progress](https://github.com/igelbox/blender-retarget/issues/4).
+* For Blender 2.80+ - use *animation-retarget-x.x.x.zip* from the [latest release](https://github.com/igelbox/blender-retarget/releases/latest) page.
 * For Blender 2.79 - the initial [animation-retarget-0.1.0.zip](https://github.com/igelbox/blender-retarget/releases/download/v0.1.0/animation-retarget-0.1.0.zip) should work fine.
 
 # How to Use

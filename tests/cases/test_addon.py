@@ -9,4 +9,4 @@ class TestAddon(utils.BaseTestCase):
         self.assertIsNotNone(animation_retarget.bl_info)
 
     def test_enabled(self):
-        self.assertIn('animation_retarget', bpy.context.user_preferences.addons)
+        self.assertIn('animation_retarget', bpy.context.preferences.addons)

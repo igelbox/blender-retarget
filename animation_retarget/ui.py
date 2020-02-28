@@ -7,7 +7,7 @@ class AbstractBasePanel(bpy.types.Panel):
     def draw_header(self, _context):
         self.layout.label(icon='PLUGIN')
 
-class ObjectPanel(AbstractBasePanel):
+class OBJECT_PT_ObjectPanel(AbstractBasePanel):
     bl_context = 'object'
 
     @classmethod
@@ -18,6 +18,9 @@ class ObjectPanel(AbstractBasePanel):
     def draw(self, context):
         layout = self.layout
         data = context.object.animation_retarget
+
+        if bpy.ops.animation_retarget.trick_blender.poll():
+            layout.operator('animation_retarget.trick_blender', icon='ERROR')
 
         col = layout.column(align=True)
         row = col.row(align=True)
@@ -32,20 +35,20 @@ class ObjectPanel(AbstractBasePanel):
             col = layout.column(align=True)
             for bone in context.object.pose.bones:
                 row = col.row(align=True)
-                row.label(bone.name)
+                row.label(text=bone.name)
                 bone_data = bone.animation_retarget
                 row.prop_search(bone_data, 'source', source.pose, 'bones', text='')
-                alert = PoseBonePanel.draw_buttons(row, source, bone_data, hide_texts=True)
+                alert = BONE_PT_PoseBonePanel.draw_buttons(row, source, bone_data, hide_texts=True)
                 row.active = alert or bool(bone.animation_retarget.source)
 
 
-class PoseBonePanel(AbstractBasePanel):
+class BONE_PT_PoseBonePanel(AbstractBasePanel):
     bl_context = 'bone'
 
     @classmethod
     def poll(cls, context):
         return (
-            ObjectPanel.poll(context)
+            OBJECT_PT_ObjectPanel.poll(context)
             and context.active_pose_bone
         )
 
@@ -55,12 +58,12 @@ class PoseBonePanel(AbstractBasePanel):
 
         source_object = bpy.data.objects.get(context.active_object.animation_retarget.source)
         if not source_object:
-            layout.label('Select the source object on the Object Properties panel', icon='INFO')
+            layout.label(text='Select the source object on the Object Properties panel', icon='INFO')
             return
 
         layout.prop_search(data, 'source', source_object.pose, 'bones')
         row = layout.row(align=True)
-        PoseBonePanel.draw_buttons(row, source_object, data)
+        BONE_PT_PoseBonePanel.draw_buttons(row, source_object, data)
 
     @classmethod
     def draw_buttons(cls, layout, source_object, data, hide_texts=False):
@@ -81,17 +84,17 @@ class PoseBonePanel(AbstractBasePanel):
         modified_layout(
             layout,
             data.use_rotation,
-        ).prop(data, 'use_rotation', toggle=True, icon='MAN_ROT', **kwargs)
+        ).prop(data, 'use_rotation', toggle=True, icon='CON_ROTLIKE', **kwargs)
         modified_layout(
             layout,
             data.use_location,
-        ).prop(data, 'use_location', toggle=True, icon='MAN_TRANS', **kwargs)
+        ).prop(data, 'use_location', toggle=True, icon='CON_LOCLIKE', **kwargs)
         return no_source and (data.use_rotation or data.use_location)
 
 
 __CLASSES__ = (
-    ObjectPanel,
-    PoseBonePanel,
+    OBJECT_PT_ObjectPanel,
+    BONE_PT_PoseBonePanel,
 )
 
 def register():

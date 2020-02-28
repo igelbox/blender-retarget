@@ -1,8 +1,8 @@
 bl_info = {
     'name':     'Animation Retargeting Tools',
     'author':   'Vakhurin Sergey (igel)',
-    'version':  (0, 1, 0),
-    'blender':  (2, 77, 0),
+    'version':  (1, 0, 0),
+    'blender': (2, 80, 0),
     'category': 'Animation',
     'location': 'Properties > Object, Properties > Bone',
     'description': 'Applies an animation from one armature to another',
