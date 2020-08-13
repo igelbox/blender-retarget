@@ -8,7 +8,7 @@ import mathutils
 
 __CONFIG_PREFIX_BONE__ = 'bone:'
 
-__TRICK_BLENDER28_ACTION_PREFIX__ = 'Just-a-Trick-to-Refresh'
+__TRICK_BLENDER28_PREFIX__ = 'Just-a-Trick-to-Refresh'
 
 
 def mapping_to_text(target_obj):
@@ -99,17 +99,47 @@ def clear_mapping(target_obj):
     bpy.context.view_layer.update()
 
 
+def need_to_trick_blender28(target_obj):
+    if not target_obj.animation_retarget.source:
+        return False
+
+    animation_data = target_obj.animation_data
+    if not animation_data:
+        return True
+    if not animation_data.action:
+        return True
+
+    for fcurve in animation_data.drivers:
+        for var in fcurve.driver.variables:
+            for target in var.targets:
+                if target.data_path == 'animation_retarget.fake_dependency':
+                    return False
+    return True
+
+
+def trick_blender283(target_obj, driver):
+    var = driver.variables.new()
+    var.name = __TRICK_BLENDER28_PREFIX__
+    tgt = var.targets[0]
+    tgt.id = bpy.data.objects[target_obj.animation_retarget.source]
+    tgt.data_path = 'animation_retarget.fake_dependency'
+
+
 def trick_blender28(target_obj):
     animation_data = target_obj.animation_data_create()
     action = animation_data.action
     if not action:
         for act in bpy.data.actions:
-            if act.name.startswith(__TRICK_BLENDER28_ACTION_PREFIX__):
+            if act.name.startswith(__TRICK_BLENDER28_PREFIX__):
                 action = act
                 break
     if not action:
-        action = bpy.data.actions.new(__TRICK_BLENDER28_ACTION_PREFIX__)
+        action = bpy.data.actions.new(__TRICK_BLENDER28_PREFIX__)
     animation_data.action = action
+
+    for fcurve in animation_data.drivers:
+        trick_blender283(target_obj, fcurve.driver)
+        break
 
 
 class RelativeObjectTransform(bpy.types.PropertyGroup):
@@ -130,6 +160,10 @@ class RelativeObjectTransform(bpy.types.PropertyGroup):
         update=_update_source,
     )
 
+    fake_dependency: bpy.props.FloatProperty(
+        description='Trick the depsgraph to force Target armature drivers update',
+        get=lambda _s: 0,
+    )
 
 def _prop_to_pose_bone(obj, prop):
     for bone in obj.pose.bones:
@@ -183,6 +217,7 @@ class RelativeBoneTransform(bpy.types.PropertyGroup):
                 tgt.data_path = 'pose.bones["%s"].animation_retarget.transform[%d]' % (
                     bone.name, fcurve.array_index + 3
                 )
+                trick_blender283(self, driver)
 
     use_rotation: bpy.props.BoolProperty(
         name='Link Rotation',
@@ -213,6 +248,7 @@ class RelativeBoneTransform(bpy.types.PropertyGroup):
             tgt.data_path = 'pose.bones["%s"].animation_retarget.transform[%d]' % (
                 bone.name, fcurve.array_index
             )
+            trick_blender283(self, driver)
 
     use_location: bpy.props.BoolProperty(
         name='Link Location',

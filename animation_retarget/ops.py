@@ -1,6 +1,7 @@
 import bpy
 
-from .core import mapping_to_text, text_to_mapping, clear_mapping, trick_blender28
+from .core import mapping_to_text, text_to_mapping, clear_mapping
+from .core import trick_blender28, need_to_trick_blender28
 
 WM = bpy.context.window_manager
 
@@ -81,10 +82,8 @@ class OBJECT_OT_TrickBlender(bpy.types.Operator):
         if not target_obj.animation_retarget.source:
             return False  # No worries, we fix this on source prop update
 
-        animation_data = target_obj.animation_data
-        if animation_data and animation_data.action:
-            return False
-        return True
+        return need_to_trick_blender28(target_obj)
+
 
 __CLASSES__ = (
     OBJECT_OT_CopyMapping,
