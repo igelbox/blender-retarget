@@ -97,6 +97,33 @@ source_to_target_rest = (1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1)
         self.assertFalse(prop.use_location)
         self.assertFalse(prop.use_rotation)
 
+    def test_trick(self):
+        operator = bpy.ops.animation_retarget.trick_blender
+        # no armature
+        self.assertFalse(operator.poll())
+
+        src = create_armature('src')
+        tgt = create_armature('tgt')
+        tgt.animation_retarget.source = src.name
+        prop = tgt.pose.bones['root'].animation_retarget
+        prop.source = 'root'
+
+        self.assertFalse(operator.poll())
+        prop.use_location = True
+        prop.use_rotation = True
+
+        # tricked automatically
+        self.assertFalse(operator.poll())
+
+
+        for fcurve in tgt.animation_data.drivers:
+            variables = fcurve.driver.variables
+            variables.remove(variables['Just-a-Trick-to-Refresh'])
+        self.assertTrue(operator.poll())
+
+        operator()
+        self.assertFalse(operator.poll())
+
 
 def create_armature(name):
     arm = bpy.data.armatures.new(name)

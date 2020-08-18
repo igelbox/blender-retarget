@@ -114,7 +114,7 @@ def need_to_trick_blender28(target_obj):
             for target in var.targets:
                 if target.data_path == 'animation_retarget.fake_dependency':
                     return False
-    return True
+    return bool(animation_data.drivers)  # not empty
 
 
 def trick_blender283(target_obj, driver):
@@ -217,7 +217,7 @@ class RelativeBoneTransform(bpy.types.PropertyGroup):
                 tgt.data_path = 'pose.bones["%s"].animation_retarget.transform[%d]' % (
                     bone.name, fcurve.array_index + 3
                 )
-                trick_blender283(self, driver)
+                trick_blender283(self.id_data, driver)
 
     use_rotation: bpy.props.BoolProperty(
         name='Link Rotation',
@@ -248,7 +248,7 @@ class RelativeBoneTransform(bpy.types.PropertyGroup):
             tgt.data_path = 'pose.bones["%s"].animation_retarget.transform[%d]' % (
                 bone.name, fcurve.array_index
             )
-            trick_blender283(self, driver)
+            trick_blender283(self.id_data, driver)
 
     use_location: bpy.props.BoolProperty(
         name='Link Location',
