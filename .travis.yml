@@ -12,7 +12,7 @@ cache:
   - blender
 
 env:
-  - BLENDER_VERSION=2.81
+  - BLENDER_VERSION=2.83
 
 install:
   - sh ./tests/ci-prepare.sh

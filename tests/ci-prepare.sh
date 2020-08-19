@@ -4,11 +4,11 @@ set -e
 DIR="blender/$BLENDER_VERSION"
 if [ ! -e "$DIR/blender" ]; then
     PYTHON_VERSION="3.7"
-    TBZ="blender-$BLENDER_VERSION-linux-glibc217-x86_64.tar.bz2"
+    ARC="blender-$BLENDER_VERSION.4-linux64.tar.xz"
 
     mkdir -p "$DIR"
-    wget "http://download.blender.org/release/Blender$BLENDER_VERSION/$TBZ"
-    tar jxf $TBZ -C "$DIR" --strip-components 1
+    wget "http://download.blender.org/release/Blender$BLENDER_VERSION/$ARC"
+    tar xf $ARC -C "$DIR" --strip-components 1
 
     TGT="$HOME/.config/blender/$BLENDER_VERSION/scripts/addons"
     mkdir -p $TGT
