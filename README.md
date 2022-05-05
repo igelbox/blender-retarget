@@ -1,5 +1,8 @@
-# blender-retarget [![Build Status](https://travis-ci.org/igelbox/blender-retarget.svg)](https://travis-ci.org/igelbox/blender-retarget) [![Code Coverage](https://codecov.io/gh/igelbox/blender-retarget/graph/badge.svg)](https://codecov.io/gh/igelbox/blender-retarget)
+# blender-retarget
 Animation retargeting addon for [Blender 3D](http://www.blender.org/).
+
+[![Tests](https://github.com/igelbox/blender-retarget/actions/workflows/tests.yml/badge.svg)](https://github.com/igelbox/blender-retarget/actions/workflows/tests.yml)
+[![Code Coverage](https://codecov.io/gh/igelbox/blender-retarget/graph/badge.svg)](https://codecov.io/gh/igelbox/blender-retarget)
 
 # The Main Goal
 The main goal is to __link/synchronize__ target armature __bones__ with a source ones in __real-time__ using some math magic.
