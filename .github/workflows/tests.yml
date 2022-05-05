@@ -12,6 +12,7 @@ jobs:
             python: '3.9'
           - version: '3.1.2'
             python: '3.10'
+            coverage: 'coverage'
     runs-on: ubuntu-latest
     env:
       BLENDER_PATH: .blender
@@ -28,5 +29,5 @@ jobs:
       - name: Test
         run: ./$BLENDER_PATH/blender --factory-startup -noaudio -b --python-exit-code 1 --python tests/runner.py
       - name: Coverage
-        run: /bin/true # stub
-        # run: bash <(curl -s https://codecov.io/bash)
+        if: ${{ matrix.blender.coverage == 'coverage' }}
+        run: bash <(curl -s https://codecov.io/bash)
