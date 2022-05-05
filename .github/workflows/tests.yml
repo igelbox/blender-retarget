@@ -23,7 +23,7 @@ jobs:
       - uses: actions/cache@v3
         with:
           path: ${{ env.BLENDER_PATH }}
-          key: blender:${{ env.BLENDER_VERSION }}
+          key: blender:${{ env.BLENDER_VERSION }}:cov632
       - name: Prepare
         run: ./tests/ci-prepare.sh
       - name: Test
