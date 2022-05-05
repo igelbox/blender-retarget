@@ -1,17 +1,17 @@
-name: Integration Tests
+name: Tests
 on: [push]
 jobs:
   test:
-    name: Run Tests
+    name: Run
     strategy:
       matrix:
         blender:
-          # - version: '2.83.20'
-          #   python: '3.7'
-          # - version: '3.0.1'
-          #   python: '3.9'
+          - version: '2.83.20'
+            python: '3.7'
+          - version: '3.0.1'
+            python: '3.9'
           - version: '3.1.2'
-            python: 3.10
+            python: '3.10'
     runs-on: ubuntu-latest
     env:
       BLENDER_PATH: .blender
