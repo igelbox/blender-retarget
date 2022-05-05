@@ -3,8 +3,8 @@ import bpy
 from .core import mapping_to_text, text_to_mapping, clear_mapping
 from .core import trick_blender28, need_to_trick_blender28
 
-WM = bpy.context.window_manager
-
+def GetWM():
+    return bpy.context.window_manager
 
 class OBJECT_OT_CopyMapping(bpy.types.Operator):
     bl_idname = "animation_retarget.copy_mapping"
@@ -13,7 +13,7 @@ class OBJECT_OT_CopyMapping(bpy.types.Operator):
 
     def execute(self, context):
         target_obj = context.active_object
-        WM.clipboard = mapping_to_text(target_obj)
+        GetWM().clipboard = mapping_to_text(target_obj)
         return {'FINISHED'}
 
     @classmethod
@@ -33,7 +33,7 @@ class OBJECT_OT_PasteMapping(bpy.types.Operator):
 
     def execute(self, context):
         target_obj = context.active_object
-        text_to_mapping(WM.clipboard, target_obj)
+        text_to_mapping(GetWM().clipboard, target_obj)
         return {'FINISHED'}
 
     @classmethod
@@ -41,7 +41,7 @@ class OBJECT_OT_PasteMapping(bpy.types.Operator):
         target_obj = context.active_object
         if (not target_obj) or (target_obj.type not in {'ARMATURE'}):
             return False
-        if not WM.clipboard:
+        if not GetWM().clipboard:
             return False
         return True
 

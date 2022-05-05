@@ -5,18 +5,17 @@ import bpy
 from animation_retarget import ops
 
 
-class WM:
-    def __init__(self):
-        self.clipboard = ''
+class WMock:
+    clipboard = ''
 
 
 class TestOperations(utils.BaseTestCase):
     def setUp(self):
         super().setUp()
-        ops.WM = WM()
+        ops.GetWM = lambda: WMock
 
     def tearDown(self):
-        ops.WM = bpy.context.window_manager
+        ops.GetWM = lambda: bpy.context.window_manager
         super().tearDown()
 
     def test_copy(self):
@@ -37,7 +36,7 @@ class TestOperations(utils.BaseTestCase):
         self.assertTrue(operator.poll())
 
         operator()
-        self.assertEqual(ops.WM.clipboard, """[object]
+        self.assertEqual(WMock.clipboard, """[object]
 source = src
 
 [bone:root]
@@ -55,10 +54,10 @@ delta_transform = (1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1)
 
         create_armature('src')
         tgt = create_armature('tgt')
-        ops.WM.clipboard = ''
+        WMock.clipboard = ''
         # the clipboard is empty
         self.assertFalse(operator.poll())
-        ops.WM.clipboard = """
+        WMock.clipboard = """
 [object]
 source=src
 [bone:root]
