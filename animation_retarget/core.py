@@ -11,6 +11,49 @@ __CONFIG_PREFIX_BONE__ = 'bone:'
 __TRICK_BLENDER28_PREFIX__ = 'Just-a-Trick-to-Refresh'
 
 
+def auto_mapping(source_obj, target_obj):
+    used_sources, used_targets = set(), set()
+
+    # use the current mapping as a basis
+    # if it's not desired so user may use Clear op beforehand
+    for bone in target_obj.pose.bones:
+        prop = bone.animation_retarget
+        if prop.source:
+            used_sources.add(prop.source)
+            used_targets.add(bone.name)
+
+    mapping = dict()
+    def process(bfilter):
+        def world_bones(obj, bones):
+            return [(b, (obj.matrix_world @ b.matrix).translation) for b in bones]
+
+        pairs = []
+        tbones = world_bones(target_obj, filter(bfilter, target_obj.pose.bones))
+        for sbone, sloc in world_bones(source_obj, filter(bfilter, source_obj.pose.bones)):
+            for tbone, tloc in tbones:
+                pairs.append(((tloc - sloc).length, sbone, tbone))
+        pairs.sort(key=lambda e: e[0])
+        for _, sbone, tbone in pairs:
+            if sbone.name in used_sources:
+                continue
+            if tbone.name in used_targets:
+                continue
+            used_sources.add(sbone.name)
+            used_targets.add(tbone.name)
+            mapping[tbone.name] = sbone.name
+
+    process(lambda b: b.parent is None)
+    process(lambda b: b.parent is not None)
+    target_obj.animation_retarget.source = source_obj.name
+    for bone in target_obj.pose.bones:
+        prop = bone.animation_retarget
+        source = mapping.get(bone.name)
+        if source is not None:
+            prop.source = source
+            prop.use_location = prop.use_rotation = True
+            prop.invalidate_cache()
+    bpy.context.view_layer.update()
+
 def mapping_to_text(target_obj):
     def put_nonempty_value(data, name, value):
         if value:
@@ -89,7 +132,6 @@ def text_to_mapping(text, target_obj):
 __ZERO_V16__ = (0,) * 16
 
 def clear_mapping(target_obj):
-    target_obj.animation_retarget.source = ''
     for bone in target_obj.pose.bones:
         prop = bone.animation_retarget
         prop.source = ''

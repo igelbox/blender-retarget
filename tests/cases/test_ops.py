@@ -115,10 +115,39 @@ source_to_target_rest = (1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1)
         self.assertTrue(operator.poll())
 
         operator()
-        self.assertEqual(tgt.animation_retarget.source, '')
         self.assertEqual(prop.source, '')
         self.assertFalse(prop.use_location)
         self.assertFalse(prop.use_rotation)
+
+    def test_automap(self):
+        operator = bpy.ops.animation_retarget.auto_mapping
+        self.assertFalse(operator.poll(), 'no armature')
+
+        src = create_armature('src')
+        tgt = create_armature('tgt')
+        self.assertFalse(operator.poll(), 'no source')
+        tgt.animation_retarget.source = src.name
+        self.assertTrue(operator.poll(), 'all ok')
+        prop_child = tgt.pose.bones['child'].animation_retarget
+        prop_child.source = 'unknown'
+
+        operator()
+        prop_root = tgt.pose.bones['root'].animation_retarget
+        self.assertEqual(
+            (prop_root.source, prop_root.use_location, prop_root.use_rotation),
+            ('root', True, True)
+        )
+        self.assertEqual(
+            (prop_child.source, prop_child.use_location, prop_child.use_rotation),
+            ('unknown', False, False)
+        )
+
+        prop_child.source = ''
+        operator()
+        self.assertEqual(
+            (prop_child.source, prop_child.use_location, prop_child.use_rotation),
+            ('child', True, True)
+        )
 
     def test_trick(self):
         operator = bpy.ops.animation_retarget.trick_blender

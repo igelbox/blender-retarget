@@ -1,7 +1,28 @@
 import bpy
 
-from .core import mapping_to_text, text_to_mapping, clear_mapping
+from .core import auto_mapping, mapping_to_text, text_to_mapping, clear_mapping
 from .core import trick_blender28, need_to_trick_blender28
+
+
+class OBJECT_OT_AutoMapping(bpy.types.Operator):
+    bl_idname = "animation_retarget.auto_mapping"
+    bl_label = "Auto Mapping"
+    bl_description = "Map bones automatically"
+
+    def execute(self, context):
+        target_obj = context.active_object
+        source_obj = bpy.data.objects[target_obj.animation_retarget.source]
+        auto_mapping(source_obj, target_obj)
+        return {'FINISHED'}
+
+    @classmethod
+    def poll(cls, context):
+        target_obj = context.active_object
+        if (not target_obj) or (target_obj.type not in {'ARMATURE'}):
+            return False
+        if not target_obj.animation_retarget.source:
+            return False
+        return True
 
 
 class OBJECT_OT_CopyMapping(bpy.types.Operator):
@@ -84,6 +105,7 @@ class OBJECT_OT_TrickBlender(bpy.types.Operator):
 
 
 __CLASSES__ = (
+    OBJECT_OT_AutoMapping,
     OBJECT_OT_CopyMapping,
     OBJECT_OT_PasteMapping,
     OBJECT_OT_ClearMapping,
