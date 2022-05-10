@@ -8,6 +8,7 @@ class OBJECT_OT_AutoMapping(bpy.types.Operator):
     bl_idname = "animation_retarget.auto_mapping"
     bl_label = "Auto Mapping"
     bl_description = "Map bones automatically"
+    bl_options = {'UNDO'}
 
     def execute(self, context):
         target_obj = context.active_object
@@ -29,6 +30,7 @@ class OBJECT_OT_CopyMapping(bpy.types.Operator):
     bl_idname = "animation_retarget.copy_mapping"
     bl_label = "Copy Mapping"
     bl_description = "Copy the current mapping to the clipboard"
+    bl_options = {'UNDO'}
 
     def execute(self, context):
         target_obj = context.active_object
@@ -49,6 +51,7 @@ class OBJECT_OT_PasteMapping(bpy.types.Operator):
     bl_idname = "animation_retarget.paste_mapping"
     bl_label = "Paste Mapping"
     bl_description = "Paste the current mapping from the clipboard"
+    bl_options = {'UNDO'}
 
     def execute(self, context):
         target_obj = context.active_object
@@ -69,6 +72,7 @@ class OBJECT_OT_ClearMapping(bpy.types.Operator):
     bl_idname = "animation_retarget.clear_mapping"
     bl_label = "Clear Mapping"
     bl_description = "Clear the current mapping"
+    bl_options = {'UNDO'}
 
     def execute(self, context):
         target_obj = context.active_object
@@ -81,6 +85,7 @@ class OBJECT_OT_ClearMapping(bpy.types.Operator):
         if (not target_obj) or (target_obj.type not in {'ARMATURE'}):
             return False
         return True
+
 
 class OBJECT_OT_TrickBlender(bpy.types.Operator):
     bl_idname = "animation_retarget.trick_blender"
@@ -112,9 +117,12 @@ __CLASSES__ = (
     OBJECT_OT_TrickBlender,
 )
 
+
 def register():
     for clas in __CLASSES__:
         bpy.utils.register_class(clas)
+
+
 def unregister():
     for clas in reversed(__CLASSES__):
         bpy.utils.unregister_class(clas)

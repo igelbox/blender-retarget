@@ -12,6 +12,7 @@ class AbstractBasePanel(bpy.types.Panel):
     def draw_header(self, _context):
         self.layout.label(icon='PLUGIN')
 
+
 class OBJECT_PT_ObjectPanel(AbstractBasePanel):
     bl_context = 'object'
 
@@ -29,10 +30,14 @@ class OBJECT_PT_ObjectPanel(AbstractBasePanel):
 
         col = layout.column(align=True)
         row = col.row(align=True)
-        row.operator('animation_retarget.auto_mapping', icon='SHADERFX', text='Auto')
-        row.operator('animation_retarget.copy_mapping', icon='COPYDOWN', text='Copy')
-        row.operator('animation_retarget.paste_mapping', icon='PASTEDOWN', text='Paste')
-        row.operator('animation_retarget.clear_mapping', icon='X', text='Clear')
+        row.operator('animation_retarget.auto_mapping',
+                     icon='SHADERFX', text='Auto')
+        row.operator('animation_retarget.copy_mapping',
+                     icon='COPYDOWN', text='Copy')
+        row.operator('animation_retarget.paste_mapping',
+                     icon='PASTEDOWN', text='Paste')
+        row.operator('animation_retarget.clear_mapping',
+                     icon='X', text='Clear')
 
         layout.prop_search(data, 'source', bpy.data, 'objects')
 
@@ -44,8 +49,10 @@ class OBJECT_PT_ObjectPanel(AbstractBasePanel):
                 row = col.row(align=True)
                 row.label(text=bone.name)
                 bone_data = bone.animation_retarget
-                row.prop_search(bone_data, 'source', source.pose, 'bones', text='')
-                alert = BONE_PT_PoseBonePanel.draw_buttons(row, source, bone_data, hide_texts=True)
+                row.prop_search(bone_data, 'source',
+                                source.pose, 'bones', text='')
+                alert = BONE_PT_PoseBonePanel.draw_buttons(
+                    row, source, bone_data, hide_texts=True)
                 row.active = alert or bool(bone.animation_retarget.source)
 
 
@@ -63,9 +70,12 @@ class BONE_PT_PoseBonePanel(AbstractBasePanel):
         layout = self.layout
         data = context.active_pose_bone.animation_retarget
 
-        source_object = bpy.data.objects.get(context.active_object.animation_retarget.source)
+        source_object = bpy.data.objects.get(
+            context.active_object.animation_retarget.source)
         if not source_object:
-            layout.label(text='Select the source object on the Object Properties panel', icon='INFO')
+            layout.label(
+                text='Select the source object on the Object Properties panel',
+                icon='INFO')
             return
 
         layout.prop_search(data, 'source', source_object.pose, 'bones')
@@ -105,6 +115,8 @@ __CLASSES__ = (
 )
 
 COLOR_LINKED = (1.0, 0.0, 0.0, 1.0)
+
+
 def overlay_view_3d():
     vertices, colors = [], []
     for object_target in bpy.data.objects:
@@ -132,7 +144,7 @@ def overlay_view_3d():
             colors.append(COLOR_LINKED)
 
     if not vertices:
-        return
+        return None
 
     shader = gpu.shader.from_builtin('3D_FLAT_COLOR')
     batch = gpu_extras.batch.batch_for_shader(
@@ -147,20 +159,20 @@ def overlay_view_3d():
     return batch.draw(shader)
 
 
-_draw_handle = None
+DRAW_HANDLES = []
+
+
 def register():
     for clas in __CLASSES__:
         bpy.utils.register_class(clas)
-    global _draw_handle
-    _draw_handle = bpy.types.SpaceView3D.draw_handler_add(
+    DRAW_HANDLES.append(bpy.types.SpaceView3D.draw_handler_add(
         overlay_view_3d, (),
         'WINDOW', 'POST_VIEW'
-    )
+    ))
+
 
 def unregister():
-    bpy.types.SpaceView3D.draw_handler_remove(
-        _draw_handle,
-        'WINDOW'
-    )
+    for handle in DRAW_HANDLES:
+        bpy.types.SpaceView3D.draw_handler_remove(handle, 'WINDOW')
     for clas in reversed(__CLASSES__):
         bpy.utils.unregister_class(clas)

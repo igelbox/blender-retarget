@@ -1,6 +1,19 @@
 name: Tests
 on: [push]
 jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v3
+        with:
+          python-version: '3.7'
+          architecture: 'x64'
+      - name: Install PyLint
+        run: python -m pip install pylint
+      - name: Lint
+        run: pylint animation_retarget
   test:
     name: Run
     strategy:
