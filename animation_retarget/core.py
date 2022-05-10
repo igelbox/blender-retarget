@@ -154,6 +154,11 @@ class RelativeObjectTransform(bpy.types.PropertyGroup):
 
             trick_blender28(target_obj)
 
+    draw_links: bpy.props.BoolProperty(
+        name='Draw Links',
+        description='Draw lines to source bones\' origins',
+    )
+
     source: bpy.props.StringProperty(
         name='Source Object',
         description='An object whose animation will be used',

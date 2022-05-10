@@ -1,6 +1,9 @@
+from unittest.mock import patch
+from animation_retarget.ui import COLOR_LINKED, overlay_view_3d
 from tests import utils
 
 import bpy
+from bpy import context
 
 from animation_retarget import ops
 
@@ -8,16 +11,36 @@ from animation_retarget import ops
 class WMock:
     clipboard = ''
 
+class ContextMock:
+    base = None
+    window_manager = WMock
+
+    def __getattribute__(self, name: str):
+        if name in ('window_manager', 'base'):
+            return super().__getattribute__(name)
+        return context.__getattribute__(name)
+
+
+class ShaderMock:
+    def __init__(self, *args) -> None:
+        self.args = args
+
+    def bind(self) -> None:
+        pass
+
+
+class BatchMock:
+    def __init__(self, shader, *args) -> None:
+        self.shader = shader
+        self.args = args
+
+    def draw(self, shader) -> None:
+        self.shader = shader
+        return self
+
 
 class TestOperations(utils.BaseTestCase):
-    def setUp(self):
-        super().setUp()
-        ops.GetWM = lambda: WMock
-
-    def tearDown(self):
-        ops.GetWM = lambda: bpy.context.window_manager
-        super().tearDown()
-
+    @patch.object(bpy, 'context', ContextMock())
     def test_copy(self):
         operator = bpy.ops.animation_retarget.copy_mapping
         # no armature
@@ -47,6 +70,7 @@ delta_transform = (1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1)
 
 """)
 
+    @patch.object(bpy, 'context', ContextMock())
     def test_paste(self):
         operator = bpy.ops.animation_retarget.paste_mapping
         # no armature
@@ -122,6 +146,30 @@ source_to_target_rest = (1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1)
 
         operator()
         self.assertFalse(operator.poll())
+
+    @patch('gpu.shader.from_builtin', ShaderMock)
+    @patch('gpu_extras.batch.batch_for_shader', lambda *args: BatchMock(*args))
+    @patch('bgl.glEnable', lambda _flags: None)
+    def test_overlay(self):
+        self.assertIsNone(overlay_view_3d())
+
+        tgt = create_armature('tgt')
+        self.assertIsNone(overlay_view_3d())
+        prop = tgt.animation_retarget
+        prop.draw_links = True
+
+        create_armature('src')
+        self.assertIsNone(overlay_view_3d())
+
+        prop.source = 'src'
+        self.assertIsNone(overlay_view_3d())
+
+        prop_root = tgt.pose.bones['root'].animation_retarget
+        prop_root.source = 'root'
+        batch = overlay_view_3d()
+        self.assertEqual(batch.args[0], 'LINES')
+        self.assertEqual(len(batch.args[1]['pos']), 2)
+        self.assertEqual(batch.shader.args, ('3D_FLAT_COLOR',))
 
 
 def create_armature(name):

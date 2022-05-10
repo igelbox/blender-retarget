@@ -1,4 +1,9 @@
+import bgl
+import gpu
+import gpu_extras.batch
 import bpy
+
+
 class AbstractBasePanel(bpy.types.Panel):
     bl_label = 'Animation Retargeting'
     bl_space_type = 'PROPERTIES'
@@ -32,6 +37,7 @@ class OBJECT_PT_ObjectPanel(AbstractBasePanel):
 
         source = bpy.data.objects.get(data.source)
         if source:
+            layout.prop(data, 'draw_links', toggle=True)
             col = layout.column(align=True)
             for bone in context.object.pose.bones:
                 row = col.row(align=True)
@@ -97,9 +103,63 @@ __CLASSES__ = (
     BONE_PT_PoseBonePanel,
 )
 
+COLOR_LINKED = (1.0, 0.0, 0.0, 1.0)
+def overlay_view_3d():
+    vertices, colors = [], []
+    for object_target in bpy.data.objects:
+        if object_target.type != 'ARMATURE':
+            continue
+
+        prop_object = object_target.animation_retarget
+        if not prop_object.draw_links:
+            continue
+
+        object_source = bpy.data.objects.get(prop_object.source)
+        if not object_source:
+            continue
+
+        for bone_target in object_target.pose.bones:
+            prop_bone = bone_target.animation_retarget
+            bone_source = object_source.pose.bones.get(prop_bone.source)
+            if not bone_source:
+                continue
+            loc_source = object_source.matrix_world @ bone_source.matrix
+            loc_target = object_target.matrix_world @ bone_target.matrix
+            vertices.append(loc_source.translation)
+            vertices.append(loc_target.translation)
+            colors.append(COLOR_LINKED)
+            colors.append(COLOR_LINKED)
+
+    if not vertices:
+        return
+
+    shader = gpu.shader.from_builtin('3D_FLAT_COLOR')
+    batch = gpu_extras.batch.batch_for_shader(
+        shader, 'LINES', {
+            'pos': vertices,
+            'color': colors,
+        }
+    )
+    bgl.glEnable(bgl.GL_BLEND)
+    bgl.glEnable(bgl.GL_LINE_SMOOTH)
+    shader.bind()
+    return batch.draw(shader)
+
+
+_draw_handle = None
 def register():
     for clas in __CLASSES__:
         bpy.utils.register_class(clas)
+    global _draw_handle
+    _draw_handle = bpy.types.SpaceView3D.draw_handler_add(
+        overlay_view_3d, (),
+        'WINDOW', 'POST_VIEW'
+    )
+
 def unregister():
+    bpy.types.SpaceView3D.draw_handler_remove(
+        _draw_handle,
+        'WINDOW'
+    )
     for clas in reversed(__CLASSES__):
         bpy.utils.unregister_class(clas)
