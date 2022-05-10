@@ -1,46 +1,11 @@
 from unittest.mock import patch
-from animation_retarget.ui import COLOR_LINKED, overlay_view_3d
-from tests import utils
 
 import bpy
-from bpy import context
 
-from animation_retarget import ops
-
-
-class WMock:
-    clipboard = ''
+from tests.utils import BaseTestCase, create_armature, ContextMock
 
 
-class ContextMock:
-    base = None
-    window_manager = WMock
-
-    def __getattribute__(self, name: str):
-        if name in ('window_manager', 'base'):
-            return super().__getattribute__(name)
-        return context.__getattribute__(name)
-
-
-class ShaderMock:
-    def __init__(self, *args) -> None:
-        self.args = args
-
-    def bind(self) -> None:
-        pass
-
-
-class BatchMock:
-    def __init__(self, shader, *args) -> None:
-        self.shader = shader
-        self.args = args
-
-    def draw(self, shader) -> None:
-        self.shader = shader
-        return self
-
-
-class TestOperations(utils.BaseTestCase):
+class TestOperations(BaseTestCase):
     @patch.object(bpy, 'context', ContextMock())
     def test_copy(self):
         operator = bpy.ops.animation_retarget.copy_mapping
@@ -60,7 +25,7 @@ class TestOperations(utils.BaseTestCase):
         self.assertTrue(operator.poll())
 
         operator()
-        self.assertEqual(WMock.clipboard, """[object]
+        self.assertEqual(bpy.context.window_manager.clipboard, """[object]
 source = src
 
 [bone:root]
@@ -79,16 +44,18 @@ delta_transform = (1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1)
 
         create_armature('src')
         tgt = create_armature('tgt')
-        WMock.clipboard = ''
+        bpy.context.window_manager.clipboard = ''
         # the clipboard is empty
         self.assertFalse(operator.poll())
-        WMock.clipboard = """
+        bpy.context.window_manager.clipboard = """
 [object]
 source=src
 [bone:root]
 source = root
 use_rotation = True
 source_to_target_rest = (1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1)
+[bone:unknown]
+[bone:child]
 """
         # all ok
         self.assertTrue(operator.poll())
@@ -175,46 +142,3 @@ source_to_target_rest = (1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1)
 
         operator()
         self.assertFalse(operator.poll())
-
-    @patch('gpu.shader.from_builtin', ShaderMock)
-    @patch('gpu_extras.batch.batch_for_shader', lambda *args: BatchMock(*args))
-    @patch('bgl.glEnable', lambda _flags: None)
-    def test_overlay(self):
-        self.assertIsNone(overlay_view_3d())
-
-        tgt = create_armature('tgt')
-        self.assertIsNone(overlay_view_3d())
-        prop = tgt.animation_retarget
-        prop.draw_links = True
-
-        create_armature('src')
-        self.assertIsNone(overlay_view_3d())
-
-        prop.source = 'src'
-        self.assertIsNone(overlay_view_3d())
-
-        prop_root = tgt.pose.bones['root'].animation_retarget
-        prop_root.source = 'root'
-        batch = overlay_view_3d()
-        self.assertEqual(batch.args[0], 'LINES')
-        self.assertEqual(len(batch.args[1]['pos']), 2)
-        self.assertEqual(batch.shader.args, ('3D_FLAT_COLOR',))
-
-
-def create_armature(name):
-    arm = bpy.data.armatures.new(name)
-    obj = bpy.data.objects.new(name, arm)
-    bpy.context.scene.collection.objects.link(obj)
-    bpy.context.view_layer.objects.active = obj
-
-    bpy.ops.object.mode_set(mode='EDIT')
-    try:
-        root = arm.edit_bones.new('root')
-        root.tail = (0, 0, 1)
-        child = arm.edit_bones.new('child')
-        child.parent = root
-        child.head = root.tail
-        child.tail = (0, 1, 1)
-    finally:
-        bpy.ops.object.mode_set(mode='OBJECT')
-    return obj

@@ -11,7 +11,7 @@ cov.start()
 
 suite = unittest.defaultTestLoader.discover('.')
 if not unittest.TextTestRunner().run(suite).wasSuccessful():
-    exit(1)
+    sys.exit(1)
 
 cov.stop()
 cov.xml_report()

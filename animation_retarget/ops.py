@@ -103,9 +103,6 @@ class OBJECT_OT_TrickBlender(bpy.types.Operator):
         if (not target_obj) or (target_obj.type not in {'ARMATURE'}):
             return False
 
-        if not target_obj.animation_retarget.source:
-            return False  # No worries, we fix this on source prop update
-
         return need_to_trick_blender28(target_obj)
 
 

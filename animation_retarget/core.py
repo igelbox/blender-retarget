@@ -192,7 +192,7 @@ def clear_mapping(target_obj):
 
 def need_to_trick_blender28(target_obj):
     if not target_obj.animation_retarget.source:
-        return False
+        return False  # No worries, we fix this on source prop update
 
     animation_data = target_obj.animation_data
     if not animation_data:

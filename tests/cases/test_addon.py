@@ -1,7 +1,7 @@
-from tests import utils
-
 import bpy
+
 import animation_retarget
+from tests import utils
 
 
 class TestAddon(utils.BaseTestCase):
