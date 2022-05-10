@@ -1,7 +1,7 @@
 bl_info = {  # pylint: disable-msg=C0103
     'name':     'Animation Retargeting Tools',
     'author':   'Vakhurin Sergei (igelbox)',
-    'version':  (1, 0, 2),
+    'version':  (1, 0, 3),
     'blender': (2, 80, 0),
     'category': 'Animation',
     'location': 'Properties > Object, Properties > Bone',
