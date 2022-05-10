@@ -28,8 +28,7 @@ class OBJECT_PT_ObjectPanel(AbstractBasePanel):
         if bpy.ops.animation_retarget.trick_blender.poll():
             layout.operator('animation_retarget.trick_blender', icon='ERROR')
 
-        col = layout.column(align=True)
-        row = col.row(align=True)
+        row = layout.row(align=True)
         row.operator('animation_retarget.auto_mapping',
                      icon='SHADERFX', text='Auto')
         row.operator('animation_retarget.copy_mapping',
@@ -174,5 +173,6 @@ def register():
 def unregister():
     for handle in DRAW_HANDLES:
         bpy.types.SpaceView3D.draw_handler_remove(handle, 'WINDOW')
+    DRAW_HANDLES.clear()
     for clas in reversed(__CLASSES__):
         bpy.utils.unregister_class(clas)

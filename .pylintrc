@@ -7,3 +7,6 @@ ignored-modules=addon_utils, bgl, bmesh, bpy, bpy_extras, mathutils, gpu, gpu_ex
 
 [MESSAGES CONTROL]
 disable=C0111, R0201, R0903
+
+[REPORTS]
+output-format=colorized
