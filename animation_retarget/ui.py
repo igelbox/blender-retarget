@@ -29,6 +29,7 @@ class OBJECT_PT_ObjectPanel(AbstractBasePanel):
 
         col = layout.column(align=True)
         row = col.row(align=True)
+        row.operator('animation_retarget.auto_mapping', icon='SHADERFX', text='Auto')
         row.operator('animation_retarget.copy_mapping', icon='COPYDOWN', text='Copy')
         row.operator('animation_retarget.paste_mapping', icon='PASTEDOWN', text='Paste')
         row.operator('animation_retarget.clear_mapping', icon='X', text='Clear')

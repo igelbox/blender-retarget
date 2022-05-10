@@ -11,6 +11,92 @@ __CONFIG_PREFIX_BONE__ = 'bone:'
 __TRICK_BLENDER28_PREFIX__ = 'Just-a-Trick-to-Refresh'
 
 
+def auto_mapping(source_obj, target_obj):
+    used_sources, used_targets = set(), set()
+
+    # use the current mapping as a basis
+    # if it's not desired so user may use Clear op beforehand
+    for bone in target_obj.pose.bones:
+        prop = bone.animation_retarget
+        if prop.source:
+            used_sources.add(prop.source)
+            used_targets.add(bone.name)
+
+    def world_bones(obj, bones):
+        return [(b, (obj.matrix_world @ b.matrix).translation) for b in bones]
+    tbones = world_bones(target_obj, target_obj.pose.bones)
+    distances = {
+        (sbone.name, tbone.name): (tloc - sloc).length
+        for sbone, sloc in world_bones(source_obj, source_obj.pose.bones)
+        for tbone, tloc in tbones
+    }
+
+    def find_pairs(source_bones, target_bones, fbones):
+        sused, tused = set(), set()
+        pairs = []
+        tbone_pairs = [(bone, tuple(fbones(bone))) for bone in target_bones]
+        for sbone in source_bones:
+            sbones = tuple(fbones(sbone))
+            for tbone, tbones in tbone_pairs:
+                pairs.append((sum(map(
+                    lambda s: 1 / (1 + min(map(
+                        lambda t: distances[(s.name, t.name)],
+                        tbones
+                    ))),
+                    sbones
+                )), sbone, tbone))
+        pairs.sort(key=lambda e: -e[0])
+        result = []
+        for score, sbone, tbone in pairs:
+            if (sbone.name in sused) or (tbone.name in tused):
+                continue
+            sused.add(sbone.name)
+            tused.add(tbone.name)
+            result.append((score, sbone, tbone))
+        return result
+
+    mapping = dict()
+    def process(source_bones, target_bones):
+        def find_chain_until_fork(bone):
+            result = [bone]
+            while len(bone.children) == 1:
+                bone = bone.children[0]
+                result.append(bone)
+            return result
+
+        pairs = find_pairs(
+            source_bones, target_bones,
+            lambda bone: (bone, *bone.children_recursive)
+        )
+        # print('pairs:', [(s, a.name, b.name) for s, a, b in pairs])
+        for _, spbone, tpbone in pairs:
+            sbones = find_chain_until_fork(spbone)
+            tbones = find_chain_until_fork(tpbone)
+            mpairs = find_pairs(sbones, tbones, lambda bone: (bone,))
+            # print('mpairs:', [(s, a.name, b.name) for s, a, b in mpairs])
+            for __, sbone, tbone in mpairs:
+                if sbone.name in used_sources:
+                    continue
+                if tbone.name in used_targets:
+                    continue
+                mapping[tbone.name] = sbone.name
+            process(sbones[-1].children, tbones[-1].children)
+
+    process(*(
+        (b for b in obj.pose.bones if b.parent is None)
+        for obj in (source_obj, target_obj)
+    ))
+
+    target_obj.animation_retarget.source = source_obj.name
+    for bone in target_obj.pose.bones:
+        prop = bone.animation_retarget
+        source = mapping.get(bone.name)
+        if source is not None:
+            prop.source = source
+            prop.use_location = prop.use_rotation = True
+        prop.invalidate_cache()
+    bpy.context.view_layer.update()
+
 def mapping_to_text(target_obj):
     def put_nonempty_value(data, name, value):
         if value:
@@ -89,7 +175,6 @@ def text_to_mapping(text, target_obj):
 __ZERO_V16__ = (0,) * 16
 
 def clear_mapping(target_obj):
-    target_obj.animation_retarget.source = ''
     for bone in target_obj.pose.bones:
         prop = bone.animation_retarget
         prop.source = ''
