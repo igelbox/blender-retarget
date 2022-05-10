@@ -11,6 +11,7 @@ from animation_retarget import ops
 class WMock:
     clipboard = ''
 
+
 class ContextMock:
     base = None
     window_manager = WMock
@@ -166,7 +167,6 @@ source_to_target_rest = (1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1)
 
         # tricked automatically
         self.assertFalse(operator.poll())
-
 
         for fcurve in tgt.animation_data.drivers:
             variables = fcurve.driver.variables

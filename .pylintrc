@@ -1,8 +1,9 @@
 [BASIC]
 no-docstring-rgx=.
+class-rgx=[A-Z_][a-zA-Z0-9_]+$
 
 [TYPECHECK]
-ignored-modules=addon_utils, bgl, bmesh, bpy, bpy_extras, mathutils
+ignored-modules=addon_utils, bgl, bmesh, bpy, bpy_extras, mathutils, gpu, gpu_extras
 
 [MESSAGES CONTROL]
-disable=C0111
+disable=C0111, R0201, R0903

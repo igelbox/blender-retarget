@@ -1,4 +1,4 @@
-bl_info = {
+bl_info = {  # pylint: disable-msg=C0103
     'name':     'Animation Retargeting Tools',
     'author':   'Vakhurin Sergei (igelbox)',
     'version':  (1, 0, 2),
@@ -12,14 +12,14 @@ bl_info = {
 
 
 def register():
-    from . import core, ui, ops
+    from . import core, ui, ops  # pylint:disable-msg=C0415
     core.register()
     ops.register()
     ui.register()
 
 
 def unregister():
-    from . import core, ui, ops
+    from . import core, ui, ops  # pylint:disable-msg=C0415
     ui.unregister()
     ops.unregister()
     core.unregister()

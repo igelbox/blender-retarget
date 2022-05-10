@@ -32,19 +32,22 @@ def auto_mapping(source_obj, target_obj):
     }
 
     def find_pairs(source_bones, target_bones, fbones):
+        def calc_score(sbones, tbones):
+            return sum(map(
+                lambda s: 1 / (1 + min(map(
+                    lambda t: distances[(s.name, t.name)],
+                    tbones
+                ))),
+                sbones
+            ))
+
         sused, tused = set(), set()
         pairs = []
         tbone_pairs = [(bone, tuple(fbones(bone))) for bone in target_bones]
         for sbone in source_bones:
             sbones = tuple(fbones(sbone))
             for tbone, tbones in tbone_pairs:
-                pairs.append((sum(map(
-                    lambda s: 1 / (1 + min(map(
-                        lambda t: distances[(s.name, t.name)],
-                        tbones
-                    ))),
-                    sbones
-                )), sbone, tbone))
+                pairs.append((calc_score(sbones, tbones), sbone, tbone))
         pairs.sort(key=lambda e: -e[0])
         result = []
         for score, sbone, tbone in pairs:
@@ -55,7 +58,8 @@ def auto_mapping(source_obj, target_obj):
             result.append((score, sbone, tbone))
         return result
 
-    mapping = dict()
+    mapping = {}
+
     def process(source_bones, target_bones):
         def find_chain_until_fork(bone):
             result = [bone]
@@ -96,6 +100,7 @@ def auto_mapping(source_obj, target_obj):
             prop.use_location = prop.use_rotation = True
         prop.invalidate_cache()
     bpy.context.view_layer.update()
+
 
 def mapping_to_text(target_obj):
     def put_nonempty_value(data, name, value):
@@ -173,6 +178,7 @@ def text_to_mapping(text, target_obj):
 
 
 __ZERO_V16__ = (0,) * 16
+
 
 def clear_mapping(target_obj):
     for bone in target_obj.pose.bones:
@@ -255,16 +261,20 @@ class RelativeObjectTransform(bpy.types.PropertyGroup):
         get=lambda _s: 0,
     )
 
+
 def _prop_to_pose_bone(obj, prop):
     for bone in obj.pose.bones:
         if bone.animation_retarget == prop:
             return bone
     return None
 
+
 def _fvec16_to_matrix4(fvec):
     return mathutils.Matrix((fvec[0:4], fvec[4:8], fvec[8:12], fvec[12:16]))
 
+
 __ROTATION_MODES__ = ('quaternion', 'euler', 'axis_angle')
+
 
 class RelativeBoneTransform(bpy.types.PropertyGroup):
     b_type = bpy.types.PoseBone
@@ -284,7 +294,7 @@ class RelativeBoneTransform(bpy.types.PropertyGroup):
         if not animation_data:
             return False
         bone = _prop_to_pose_bone(self.id_data, self)
-        data_path_prefix = 'pose.bones["%s"].rotation_' % (bone.name,)
+        data_path_prefix = f'pose.bones["{bone.name}"].rotation_'
         for mode in __ROTATION_MODES__:
             if animation_data.drivers.find(data_path_prefix + mode) is not None:
                 return True
@@ -301,12 +311,12 @@ class RelativeBoneTransform(bpy.types.PropertyGroup):
             for fcurve in bone.driver_add('rotation_' + mode):
                 driver = fcurve.driver
                 driver.type = 'SUM'
-                var = driver.variables[0] if driver.variables else driver.variables.new()
+                variables = driver.variables
+                var = variables[0] if variables else variables.new()
                 tgt = var.targets[0]
                 tgt.id = self.id_data
-                tgt.data_path = 'pose.bones["%s"].animation_retarget.transform[%d]' % (
-                    bone.name, fcurve.array_index + 3
-                )
+                fc_idx = fcurve.array_index + 3
+                tgt.data_path = f'pose.bones["{bone.name}"].animation_retarget.transform[{fc_idx}]'
                 trick_blender283(self.id_data, driver)
 
     use_rotation: bpy.props.BoolProperty(
@@ -320,7 +330,7 @@ class RelativeBoneTransform(bpy.types.PropertyGroup):
         if not animation_data:
             return False
         bone = _prop_to_pose_bone(self.id_data, self)
-        data_path = 'pose.bones["%s"].location' % (bone.name,)
+        data_path = f'pose.bones["{bone.name}"].location'
         return animation_data.drivers.find(data_path) is not None
 
     def _set_use_location(self, value):
@@ -332,12 +342,12 @@ class RelativeBoneTransform(bpy.types.PropertyGroup):
         for fcurve in bone.driver_add('location'):
             driver = fcurve.driver
             driver.type = 'SUM'
-            var = driver.variables[0] if driver.variables else driver.variables.new()
+            variables = driver.variables
+            var = variables[0] if variables else variables.new()
             tgt = var.targets[0]
             tgt.id = self.id_data
-            tgt.data_path = 'pose.bones["%s"].animation_retarget.transform[%d]' % (
-                bone.name, fcurve.array_index
-            )
+            fc_idx = fcurve.array_index
+            tgt.data_path = f'pose.bones["{bone.name}"].animation_retarget.transform[{fc_idx}]'
             trick_blender283(self.id_data, driver)
 
     use_location: bpy.props.BoolProperty(
@@ -424,7 +434,8 @@ class RelativeBoneTransform(bpy.types.PropertyGroup):
         self.frame_cache[7] = 0
 
     def _get_transform(self):
-        frame = bpy.context.scene.frame_current + 1 # to workaround the default 0 value
+        frame = bpy.context.scene.frame_current + \
+            1  # to workaround the default 0 value
         cache = tuple(self.frame_cache)
         if cache[7] == frame:
             return cache
@@ -451,10 +462,12 @@ class RelativeBoneTransform(bpy.types.PropertyGroup):
 
     transform: bpy.props.FloatVectorProperty(size=8, get=_get_transform)
 
+
 __CLASSES__ = (
     RelativeObjectTransform,
     RelativeBoneTransform,
 )
+
 
 def register():
     for clas in __CLASSES__:
